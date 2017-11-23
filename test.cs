@@ -7,117 +7,113 @@ using System.Web.Http;
 using webappdev.Models;
 using webappdev.entities;
 
-
 namespace webappdev.Controllers
 {
-    public class ProductController : ApiController
+    public class UserController : ApiController
     {
+
         WebAppDevDBDataContext webAppDevDBDataContext;
-        public ProductController()
+        public UserController()
         {
             webAppDevDBDataContext = new WebAppDevDBDataContext();
         }
-        // GET api/product
-        public IEnumerable<Product> Get()
+        // GET api/user
+        public IEnumerable<User> Get()
         {
-            List<TblProduct> tblProducts = webAppDevDBDataContext.TblProducts.ToList();
-            List<Product> lstProduct = new List<Product>();
-            foreach (TblProduct tblProduct in tblProducts)
+            List<TblUser> tblUsers = webAppDevDBDataContext.TblUsers.ToList();
+            List<User> lstUser = new List<User>();
+            foreach (TblUser tblUser in tblUsers)
             {
-                Product product = new Product();
-                product.Ord = tblProduct._ord;
-                product.Code = tblProduct._code;
-                product.Name = tblProduct._name;
-                product.CodeCategory = tblProduct._codeCategory;
-                product.Price = (long)tblProduct._price;
-                product.Quantity = (int)tblProduct._quantity;
-                product.Detail = tblProduct._detail;
-                product.UrlImage = tblProduct._urlImage;
-                product.IsAds = (bool)tblProduct._isAds;
-                lstProduct.Add(product);
+                User user = new User();
+                user.Ord = tblUser._ord;
+                user.Code = tblUser._code;
+                user.Name = tblUser._name;
+                user.RoleCode = tblUser._roleCode;
+                user.Password = tblUser._password;
+                user.Phone = tblUser._phone;
+                lstUser.Add(user);
             }
-            return lstProduct;
+            return lstUser;
         }
 
-        // GET api/product/5
+        // GET api/user/5
         public string Get(int id)
         {
             return "value";
         }
 
-        // POST api/product
-        public void Post([FromBody]Product product)
+        // POST api/user
+        public Result Post([FromBody]User user)
         {
-            if(product == null 
-                || product.Ord == null 
-                || product.CodeCategory == null
-                || product.Name == null
-                || product.Price == null
-                || product.Quantity == null 
-                || product.Detail == null
-                || product.UrlImage == null)
+            Result result = new Result();
+            if (user == null || user.Phone == null || user.Password == null || user.Name == null)
+            {
+                result.Status = false;
+                return result;
+            }
+            if (user.RoleCode == null || user.RoleCode != "adm")
+            {
+                user.RoleCode = "ctm";
+            }
+            TblUser tblUserDB = webAppDevDBDataContext.TblUsers.OrderBy(c => c._ord).ToList().Last();
+            TblUser tblUser = new TblUser();
+            tblUser._code = "ctm" + (tblUserDB._ord + 1);
+            tblUser._name = user.Name;
+            tblUser._roleCode = user.RoleCode;
+            tblUser._password = user.Password;
+            tblUser._phone = user.Phone; 
+            webAppDevDBDataContext.TblUsers.InsertOnSubmit(tblUser);
+            try
+            {
+                webAppDevDBDataContext.SubmitChanges();
+            }
+            catch (Exception)
+            {
+                result.Status = false;
+                return result;
+            }
+            result.Status = true;
+            return result;
+        }
+
+        // PUT api/user/5
+        public void Put([FromBody]User user)
+        {
+            var values = from items in webAppDevDBDataContext.TblUsers
+                         where items._code == user.Code
+                         select items;
+            if (values.Count() < 1)
             {
                 return;
             }
-            if(product.Code == null){
-                product.Code = "pro" + (webAppDevDBDataContext.TblProducts.OrderBy(c=>c._ord).ToList().Last()._ord + 1);
+            values.First()._name = user.Name;
+            values.First()._roleCode = user.RoleCode;
+            values.First()._password = user.Password;
+            values.First()._phone = user.Phone;
+
+            webAppDevDBDataContext.SubmitChanges();
+        }
+
+        // DELETE api/user/5
+        public bool Delete([FromBody]User user)
+        {
+            var values = from items in webAppDevDBDataContext.TblUsers
+                         where items._code == user.Code
+                         select items;
+            if (values.Count() < 1)
+            {
+                return false;
             }
-            TblProduct tblProduct = new TblProduct();
-            tblProduct._code = product.Code;
-            tblProduct._name = product.Name;
-            tblProduct._codeCategory = product.CodeCategory;
-            tblProduct._quantity = product.Quantity;
-            tblProduct._price = product.Price;
-            tblProduct._quantity = product.Quantity;
-            tblProduct._urlImage = product.UrlImage;
-            tblProduct._isAds = false;
-            webAppDevDBDataContext.TblProducts.InsertOnSubmit(tblProduct);
+            webAppDevDBDataContext.TblUsers.DeleteOnSubmit(values.First());
             try
             {
                 webAppDevDBDataContext.SubmitChanges();
             }
             catch (Exception e)
             {
-                return;
+                return false;
             }
-        }
-
-        // PUT api/product/5
-        public void Put([FromBody]Product product)
-        {
-            var values = from items in webAppDevDBDataContext.TblProducts
-                         where items._code == product.Code
-                         select items;
-            if (values.Count() < 1)
-            {
-                return;
-            }
-            foreach (TblProduct tblProduct in values)
-            {
-                tblProduct._name = product.Name;
-                tblProduct._codeCategory = product.CodeCategory;
-                tblProduct._quantity = product.Quantity;
-                tblProduct._price = product.Price;
-                tblProduct._quantity = product.Quantity;
-                tblProduct._detail = product.Detail;
-                tblProduct._urlImage = product.UrlImage;
-                tblProduct._isAds = product.IsAds;
-            }
-            webAppDevDBDataContext.SubmitChanges();
-        }
-
-        // DELETE api/product/5
-        public void Delete([FromBody]Product product)
-        {
-            var values = from items in webAppDevDBDataContext.TblProducts
-                         where items._code == product.Code
-                         select items;
-            if (values.Count() < 1)
-            {
-                return;
-            }
-            webAppDevDBDataContext.TblProducts.DeleteOnSubmit(values.First());
-            webAppDevDBDataContext.SubmitChanges();
+            return true;
         }
     }
 }
