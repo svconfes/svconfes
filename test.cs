@@ -1,39 +1,41 @@
 $(document).ready(function () {
-    loadCartTable();
+    ajaxcall("api/category", {}, "get", loadCategory);
 });
 
-var total = 0;
-
-function loadCartTable(){
-    var cart = JSON.parse(localStorage.getItem('cart'));
-    $(".tbl-cart-body").empty();
-    cart.forEach(function(element) {
-        $(".tbl-cart-body").append(getRow(element));
+function loadCategory(data) {
+    $(".tbl-category").empty();
+    data.forEach(function (element) {
+        $(".tbl-category").append(getRowCate(element));
     }, this);
-    $(".tbl-cart-sum").text(total);
 }
 
-function getRow(element){
-    total = total + element.Price * element.Quantity;
+function getRowCate(element) {
+    console.log(element);
     return '<tr>'
-            +'<td>'+ element.Code +'</td>'
-            +'<td>'+ element.Name +'</td>'
-            +'<td>'+ element.Price +'</td>'
-            +'<td>'+ element.Quantity +'</td>'
-            +'<td>'+ element.Price * element.Quantity +'</td>'
-        +'</tr>'
+        + '<td>' + element.Ord + '</td>'
+        + '<td>' + element.Code + '</td>'
+        + '<td>' + element.Name + '</td>'
+        + `<td><a class="btn btn-danger" href="#" onclick="deleteCate('`+ element.Ord +`')"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a></td>`
+        + '</tr>';
 }
 
-function cancelCart(){
-    localStorage.setItem("cart", JSON.stringify([]));
-    redirect("product.html");
+function deleteCate(ord) {
+    var value = { "Ord": ord };
+    ajaxcall("api/category/5", value, "delete", showPopup);
+    
 }
 
-function addOrder(){
-    var order = {};
-    order.CodeUser = JSON.parse(localStorage.getItem('user')).Code;
-    order.Products = JSON.parse(localStorage.getItem('cart'));
-    ajaxcall('api/order', order, 'post', function(){});
-    localStorage.setItem("cart", JSON.stringify([]));
-    redirect("order.html");
+function showPopup(bool){
+    if(bool){
+        location.reload();
+    }else{
+        $(".alert-danger").removeClass("hidden");
+    }
+}
+
+function addCategory(){
+    var cate = {};
+    cate.Code = $("#cate-code").val();
+    cate.Name = $("#cate-name").val();
+    ajaxcall("api/category", cate, "post", location.reload());
 }
