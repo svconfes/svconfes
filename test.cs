@@ -7,131 +7,117 @@ using System.Web.Http;
 using webappdev.Models;
 using webappdev.entities;
 
+
 namespace webappdev.Controllers
 {
-    public class OrderController : ApiController
+    public class ProductController : ApiController
     {
         WebAppDevDBDataContext webAppDevDBDataContext;
-        public OrderController()
+        public ProductController()
         {
             webAppDevDBDataContext = new WebAppDevDBDataContext();
         }
-        // GET api/order
-        public IEnumerable<Order> Get()
+        // GET api/product
+        public IEnumerable<Product> Get()
         {
-            List<TblOrder> tblOrders = webAppDevDBDataContext.TblOrders.OrderByDescending(x => x._ord).ToList();
-            List<Order> lstOrder = new List<Order>();
-            foreach (TblOrder tblOrder in tblOrders)
+            List<TblProduct> tblProducts = webAppDevDBDataContext.TblProducts.ToList();
+            List<Product> lstProduct = new List<Product>();
+            foreach (TblProduct tblProduct in tblProducts)
             {
-                Order order = new Order();
-                order.Ord = tblOrder._ord;
-                order.Code = tblOrder._code;
-                order.CodeUser = tblOrder._codeUser;
-                order.CodeStatus = tblOrder._codeStatus;
-                order.Price = (long)tblOrder._price;
-                order.Products = getLstProductDetailByCode(order.Code);
-                lstOrder.Add(order);
+                Product product = new Product();
+                product.Ord = tblProduct._ord;
+                product.Code = tblProduct._code;
+                product.Name = tblProduct._name;
+                product.CodeCategory = tblProduct._codeCategory;
+                product.Price = (long)tblProduct._price;
+                product.Quantity = (int)tblProduct._quantity;
+                product.Detail = tblProduct._detail;
+                product.UrlImage = tblProduct._urlImage;
+                product.IsAds = (bool)tblProduct._isAds;
+                lstProduct.Add(product);
             }
-            return lstOrder;
+            return lstProduct;
         }
 
-        // GET api/order/5
+        // GET api/product/5
         public string Get(int id)
         {
             return "value";
         }
 
-        // POST api/order
-        public void Post([FromBody]Order order)
+        // POST api/product
+        public void Post([FromBody]Product product)
         {
-            TblOrder tblOrder = new TblOrder();
-            tblOrder._codeStatus = "working";
-            tblOrder._codeUser = order.CodeUser;
-            tblOrder._code = "ord" + (webAppDevDBDataContext.TblOrders.OrderBy(c => c._ord).ToList().Last()._ord + 1);
-            long price = 0;
-            foreach (Product product in order.Products)
+            if(product == null 
+                || product.Ord == null 
+                || product.CodeCategory == null
+                || product.Name == null
+                || product.Price == null
+                || product.Quantity == null 
+                || product.Detail == null
+                || product.UrlImage == null)
             {
-                TblOrderDetail tblOderDetail = new TblOrderDetail();
-                tblOderDetail._codeOrder = tblOrder._code;
-                tblOderDetail._codeProduct = product.Code;
-                tblOderDetail._quantity = product.Quantity;
-                price = product.Price * product.Quantity + price;
-                webAppDevDBDataContext.TblOrderDetails.InsertOnSubmit(tblOderDetail);
+                return;
             }
-            tblOrder._price = price;
-            webAppDevDBDataContext.TblOrders.InsertOnSubmit(tblOrder);
-            webAppDevDBDataContext.SubmitChanges();
-        }
-
-        // PUT api/order/5
-        public void Put([FromBody]Order order)
-        {
-            if (order != null)
+            if(product.Code == null){
+                product.Code = "pro" + (webAppDevDBDataContext.TblProducts.OrderBy(c=>c._ord).ToList().Last()._ord + 1);
+            }
+            TblProduct tblProduct = new TblProduct();
+            tblProduct._code = product.Code;
+            tblProduct._name = product.Name;
+            tblProduct._codeCategory = product.CodeCategory;
+            tblProduct._quantity = product.Quantity;
+            tblProduct._price = product.Price;
+            tblProduct._quantity = product.Quantity;
+            tblProduct._urlImage = product.UrlImage;
+            tblProduct._isAds = false;
+            webAppDevDBDataContext.TblProducts.InsertOnSubmit(tblProduct);
+            try
             {
-                var values = from items in webAppDevDBDataContext.TblOrders
-                             where items._code == order.Code
-                             select items;
-                values.First()._codeStatus = order.CodeStatus;
                 webAppDevDBDataContext.SubmitChanges();
+            }
+            catch (Exception e)
+            {
                 return;
             }
         }
 
-        // DELETE api/order/5
-        public void Delete([FromBody]Order order)
+        // PUT api/product/5
+        public void Put([FromBody]Product product)
         {
-            if (order != null && order.CodeStatus == "working")
-            {
-                var values = from items in webAppDevDBDataContext.TblOrders
-                             where items._code == order.Code
-                             select items;
-                if (values.Count() < 1)
-                {
-                    return;
-                }
-                webAppDevDBDataContext.TblOrders.DeleteOnSubmit(values.First());
-
-                var valueDetails = from items in webAppDevDBDataContext.TblOrderDetails
-                         where items._codeOrder == order.Code
+            var values = from items in webAppDevDBDataContext.TblProducts
+                         where items._code == product.Code
                          select items;
-
-                foreach (TblOrderDetail tblOrderDetail in valueDetails)
-                {
-                    webAppDevDBDataContext.TblOrderDetails.DeleteOnSubmit(tblOrderDetail);
-                }
-                webAppDevDBDataContext.SubmitChanges();
+            if (values.Count() < 1)
+            {
+                return;
             }
+            foreach (TblProduct tblProduct in values)
+            {
+                tblProduct._name = product.Name;
+                tblProduct._codeCategory = product.CodeCategory;
+                tblProduct._quantity = product.Quantity;
+                tblProduct._price = product.Price;
+                tblProduct._quantity = product.Quantity;
+                tblProduct._detail = product.Detail;
+                tblProduct._urlImage = product.UrlImage;
+                tblProduct._isAds = product.IsAds;
+            }
+            webAppDevDBDataContext.SubmitChanges();
         }
 
-        private List<Product> getLstProductDetailByCode(string codeOrder)
+        // DELETE api/product/5
+        public void Delete([FromBody]Product product)
         {
-            List<TblOrderDetail> tblOrderDetails = webAppDevDBDataContext.TblOrderDetails.ToList();
-            List<TblProduct> tblProducts = webAppDevDBDataContext.TblProducts.ToList();
-            List<Product> lstProduct = new List<Product>();
-
-            foreach(TblOrderDetail tblOrderDetail in tblOrderDetails){
-                if (tblOrderDetail._codeOrder == codeOrder)
-                {
-                    foreach (TblProduct tblProduct in tblProducts)
-                    {
-                        if (tblProduct._code == tblOrderDetail._codeProduct)
-                        {
-                            Product product = new Product();
-                            product.Ord = tblProduct._ord;
-                            product.Code = tblProduct._code;
-                            product.Name = tblProduct._name;
-                            product.CodeCategory = tblProduct._codeCategory;
-                            product.Price = (long)tblProduct._price;
-                            product.Quantity = (int)tblProduct._quantity;
-                            product.Detail = tblProduct._detail;
-                            product.UrlImage = tblProduct._urlImage;
-                            product.IsAds = (bool)tblProduct._isAds;
-                            lstProduct.Add(product);
-                        }
-                    }
-                }
+            var values = from items in webAppDevDBDataContext.TblProducts
+                         where items._code == product.Code
+                         select items;
+            if (values.Count() < 1)
+            {
+                return;
             }
-            return lstProduct;
+            webAppDevDBDataContext.TblProducts.DeleteOnSubmit(values.First());
+            webAppDevDBDataContext.SubmitChanges();
         }
     }
 }
