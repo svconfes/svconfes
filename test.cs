@@ -1,41 +1,29 @@
 $(document).ready(function () {
-    ajaxcall("api/category", {}, "get", loadCategory);
+    $("#btn-login").click(function () {
+        ajaxcall('api/user', {}, 'get', checklogin);
+    });
+    if (localStorage.getItem('user') != null) {
+        if (JSON.parse(localStorage.getItem('user')).RoleCode == 'adm') {
+            redirect("order.html")
+        }
+        if (JSON.parse(localStorage.getItem('user')).RoleCode == 'ctm') {
+            redirect("product.html")
+        }
+    }
 });
 
-function loadCategory(data) {
-    $(".tbl-category").empty();
+function checklogin(data) {
     data.forEach(function (element) {
-        $(".tbl-category").append(getRowCate(element));
+        var user = $("#user").val();
+        var pass = $("#pass").val();
+        if ((user == element.Code || user == element.Phone) && pass == element.Password) {
+            localStorage.setItem("user", JSON.stringify(element));
+            if(element.RoleCode == 'ctm'){
+                redirect("product.html")
+            }else{
+                redirect("order.html")
+            }
+        }
     }, this);
-}
-
-function getRowCate(element) {
-    console.log(element);
-    return '<tr>'
-        + '<td>' + element.Ord + '</td>'
-        + '<td>' + element.Code + '</td>'
-        + '<td>' + element.Name + '</td>'
-        + `<td><a class="btn btn-danger" href="#" onclick="deleteCate('`+ element.Ord +`')"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a></td>`
-        + '</tr>';
-}
-
-function deleteCate(ord) {
-    var value = { "Ord": ord };
-    ajaxcall("api/category/5", value, "delete", showPopup);
-    
-}
-
-function showPopup(bool){
-    if(bool){
-        location.reload();
-    }else{
-        $(".alert-danger").removeClass("hidden");
-    }
-}
-
-function addCategory(){
-    var cate = {};
-    cate.Code = $("#cate-code").val();
-    cate.Name = $("#cate-name").val();
-    ajaxcall("api/category", cate, "post", location.reload());
+    $(".alert-danger").removeClass("hidden");
 }
